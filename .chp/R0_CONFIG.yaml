@@ -1,0 +1,184 @@
+# Strata CFO Resilience Matrix — R0 Configuration
+# Initial Release Configuration for FTR Submission
+
+version: "1.0"
+project: "strata-cfo-resilience-matrix"
+environment: "production"
+release: "R0"
+
+# FTR Submission Configuration
+ftr:
+  submission_type: "new_solution"
+  partner_tier: "Select"
+  solution_category: "AI/ML"
+  well_architected_review: true
+  security_review: true
+
+# Infrastructure Configuration
+infrastructure:
+  iac_tool: "AWS SAM (Serverless Application Model)"
+  template: "template.yaml"
+  regions:
+    primary: "us-east-1"
+    dr: "us-west-2"
+
+  vpc:
+    cidr: "10.0.0.0/16"
+    availability_zones: 2
+    public_subnets: 2
+    private_subnets: 2
+    nat_gateways: 2
+    flow_logs: true
+    flow_logs_destination: "cloudwatch"
+
+  encryption:
+    kms_cmk: true
+    key_rotation: true
+    sse_s3: "aws:kms"
+    sse_dynamodb: "KMS"
+
+  compute:
+    runtime: "python3.12"
+    memory_sizes:
+      curate: 512
+      fine_tune: 1024
+      gateway: 256
+      resilience_stack: 512
+      chaos_engine: 512
+      cfo_agents: 512
+    timeouts:
+      curate: 300
+      fine_tune: 900
+      gateway: 60
+      resilience_stack: 120
+      chaos_engine: 300
+      cfo_agents: 120
+
+# Resilience Configuration
+resilience:
+  circuit_breaker:
+    threshold: 5
+    reset_timeout_seconds: 60
+  retry:
+    max_attempts: 3
+    base_delay_seconds: 0.5
+    max_delay_seconds: 10.0
+    backoff_factor: 2.0
+    jitter: true
+  cache:
+    ttl_seconds: 3600
+    backend: "s3"
+  degradation:
+    levels: 4
+    max_context_reduction: 0.0
+  timeout:
+    stack_timeout_ms: 30000
+
+# Bedrock Configuration
+bedrock:
+  primary_model: "anthic.claude-3-5-sonnet-20241022-v1:0"
+  fallback_model: "amazon.titan-text-premier-v1:0"
+  tertiary_model: "meta.llama3-70b-instruct-v1:0"
+  max_tokens: 4096
+  temperature: 0.7
+  top_p: 0.9
+
+# Monitoring Configuration
+monitoring:
+  cloudwatch:
+    log_retention_days: 30
+    metrics_namespace: "StrataCFO"
+    alarms:
+      - name: "gateway_errors"
+        metric: "Errors"
+        threshold: 5
+        period: 300
+        evaluation_periods: 2
+      - name: "gateway_latency"
+        metric: "Duration"
+        statistic: "p99"
+        threshold: 5000
+        period: 300
+        evaluation_periods: 3
+      - name: "circuit_breaker_open"
+        metric: "CircuitBreakerState"
+        threshold: 2
+        period: 60
+        evaluation_periods: 1
+      - name: "chaos_failure_rate"
+        metric: "ChaosTestFailureRate"
+        threshold: 10
+        period: 3600
+        evaluation_periods: 1
+
+  xray:
+    tracing_enabled: true
+    sampling_rate: 1.0
+
+# Security Configuration
+security:
+  secrets_manager: true
+  least_privilege_iam: true
+  abac_enabled: true
+  cognito:
+    mfa: "optional"
+    password_policy:
+      minimum_length: 12
+      require_uppercase: true
+      require_lowercase: true
+      require_numbers: true
+      require_symbols: true
+  vpc_endpoints:
+    - "dynamodb"
+    - "s3"
+
+# Chaos Engineering Configuration
+chaos:
+  schedule: "cron(0 */6 * * ? *)"
+  scenarios:
+    - "llm_outage"
+    - "latency_spike"
+    - "rate_limiting"
+    - "context_overflow"
+    - "network_partition"
+    - "circuit_breaker_cascade"
+    - "cache_invalidation"
+    - "degradation_test"
+    - "multi_model_failover"
+
+# Compliance
+compliance:
+  ftr_checklist:
+    - id: "FTR-001"
+      requirement: "100% IaC (SAM template.yaml)"
+      status: "compliant"
+    - id: "FTR-002"
+      requirement: "Custom VPC with private subnets"
+      status: "compliant"
+    - id: "FTR-003"
+      requirement: "KMS CMK encryption everywhere"
+      status: "compliant"
+    - id: "FTR-004"
+      requirement: "Secrets Manager — zero secrets in code"
+      status: "compliant"
+    - id: "FTR-005"
+      requirement: "Least-privilege IAM (no wildcard resources)"
+      status: "compliant"
+    - id: "FTR-006"
+      requirement: "CloudWatch logs + metrics + alarms"
+      status: "compliant"
+    - id: "FTR-007"
+      requirement: "Multi-AZ deployment"
+      status: "compliant"
+    - id: "FTR-008"
+      requirement: "VPC Flow Logs + CloudTrail"
+      status: "compliant"
+    - id: "FTR-009"
+      requirement: "Architecture diagram in README"
+      status: "compliant"
+    - id: "FTR-010"
+      requirement: "Runbook"
+      status: "compliant"
+    - id: "FTR-011"
+      requirement: "Well-Architected self-assessment"
+      status: "compliant"

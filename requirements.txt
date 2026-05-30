@@ -1,0 +1,7 @@
+# Strata CFO Resilience Matrix — Python Dependencies
+# Lambda runtime dependencies for all 6 layers
+# FTR: Production-grade dependencies only — no test or dev packages in Lambda
+
+aws-lambda-powertools==2.42.0
+boto3==1.35.36
+botocore==1.35.36

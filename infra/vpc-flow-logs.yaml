@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Strata VPC Flow Logs — Nested Stack
+  Configures VPC Flow Logs delivery to CloudWatch Logs and S3.
+
+  FTR Requirement: VPC Flow Logs must be enabled for network traffic auditing.
+  This nested stack ensures flow logs are configured with proper retention
+  and IAM permissions.
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: VPC ID to enable flow logs for
+  LogGroupName:
+    Type: String
+    Default: ""
+    Description: CloudWatch Log Group name (empty = auto-create)
+  TrafficType:
+    Type: String
+    Default: ALL
+    AllowedValues:
+      - ACCEPT
+      - REJECT
+      - ALL
+    Description: Type of traffic to log
+  RetentionDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    MaxValue: 365
+    Description: CloudWatch Logs retention in days
+
+Resources:
+  FlowLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/vpcFlowLogsRole
+
+  FlowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: CreateLogGroup
+    Properties:
+      LogGroupName: !If [CreateLogGroup, !Ref LogGroupName, !Sub "/strata/vpc-flow-logs-${VpcId}"]
+      RetentionInDays: !Ref RetentionDays
+      Tags:
+        - Key: Compliance
+          Value: FTR-VPCFlowLogs
+
+  FlowLog:
+    Type: AWS::EC2::FlowLog
+    DependsOn: FlowLogGroup
+    Properties:
+      ResourceType: VPC
+      ResourceId: !Ref VpcId
+      TrafficType: !Ref TrafficType
+      LogGroupName: !If [CreateLogGroup, !Ref LogGroupName, !Sub "/strata/vpc-flow-logs-${VpcId}"]
+      DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
+      LogDestinationType: cloud-watch-logs
+      Tags:
+        - Key: Name
+          Value: !Sub "strata-flow-log-${VpcId}"
+        - Key: Compliance
+          Value: FTR-VPCFlowLogs
+
+Conditions:
+  CreateLogGroup: !Equals [!Ref LogGroupName, ""]
+
+Outputs:
+  FlowLogId:
+    Description: VPC Flow Log ID
+    Value: !Ref FlowLog
+  LogGroupName:
+    Description: CloudWatch Log Group receiving flow logs
+    Value: !If [CreateLogGroup, !Ref LogGroupName, !Sub "/strata/vpc-flow-logs-${VpcId}"]

@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Strata CloudTrail Configuration — Nested Stack
+  Configures AWS CloudTrail for API call auditing.
+
+  FTR Requirement: CloudTrail must be enabled for all control plane API calls.
+  This nested stack ensures CloudTrail is configured with:
+  - KMS CMK encryption for log files
+  - CloudWatch Logs integration for real-time monitoring
+  - Log file validation for tamper detection
+  - S3 bucket with proper access policies
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    Description: Environment name for resource tagging
+  TrailName:
+    Type: String
+    Default: strata-cloudtrail
+    Description: CloudTrail trail name
+  S3BucketName:
+    Type: String
+    Default: ""
+    Description: Existing S3 bucket (empty = create new)
+  KmsKeyId:
+    Type: String
+    Default: ""
+    Description: KMS CMK ARN for encryption (empty = auto-create)
+  IsMultiRegion:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+    Description: Enable multi-region trail
+  EnableLogFileValidation:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+    Description: Enable log file integrity validation
+
+Resources:
+  CloudTrailKMSKey:
+    Type: AWS::KMS::Key
+    Condition: CreateKMSKey
+    Properties:
+      Description: !Sub "Strata CloudTrail KMS Key — ${Environment}"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudTrail
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action:
+              - kms:GenerateDataKey
+              - kms:Decrypt
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+          - Sid: AllowCloudWatchLogs
+            Effect: Allow
+            Principal:
+              Service: !Sub "logs.${AWS::Region}.amazonaws.com"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey
+            Resource: "*"
+
+  CloudTrailBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateBucket
+    Properties:
+      BucketName: !Sub "strata-cloudtrail-${AWS::AccountId}-${Environment}-${AWS::Region}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !If [CreateKMSKey, !Ref CloudTrailKMSKey, !Ref KmsKeyId]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  CloudTrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateBucket
+    Properties:
+      Bucket: !Ref CloudTrailBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt CloudTrailBucket.Arn
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub "${CloudTrailBucket.Arn}/AWSLogs/${AWS::AccountId}/*"
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+
+  CloudTrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/cloudtrail/strata-${Environment}"
+      RetentionInDays: 90
+
+  CloudTrailLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCloudTrailServiceRole
+
+  StrataTrail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn:
+      - CloudTrailBucketPolicy
+      - CloudTrailLogGroup
+    Properties:
+      TrailName: !Sub "${TrailName}-${Environment}"
+      S3BucketName: !If [CreateBucket, !Ref CloudTrailBucket, !Ref S3BucketName]
+      S3KeyPrefix: "cloudtrail/strata/"
+      IsLogging: true
+      IncludeGlobalServiceEvents: false
+      IsMultiRegionTrail: !Equals [!Ref IsMultiRegion, "true"]
+      EnableLogFileValidation: !Equals [!Ref EnableLogFileValidation, "true"]
+      CloudWatchLogsLogGroupArn: !GetAtt CloudTrailLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt CloudTrailLogsRole.Arn
+      KmsKeyId: !If [CreateKMSKey, !Ref CloudTrailKMSKey, !Ref KmsKeyId]
+      Tags:
+        - Key: Name
+          Value: !Sub "${TrailName}-${Environment}"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Compliance
+          Value: FTR-CloudTrail
+
+Conditions:
+  CreateKMSKey: !Equals [!Ref KmsKeyId, ""]
+  CreateBucket: !Equals [!Ref S3BucketName, ""]
+
+Outputs:
+  TrailArn:
+    Description: CloudTrail ARN
+    Value: !Ref StrataTrail
+  TrailName:
+    Description: CloudTrail trail name
+    Value: !Sub "${TrailName}-${Environment}"
+  S3BucketName:
+    Description: S3 bucket receiving CloudTrail logs
+    Value: !If [CreateBucket, !Ref CloudTrailBucket, !Ref S3BucketName]
+  LogGroupName:
+    Description: CloudWatch Log Group for CloudTrail logs
+    Value: !Ref CloudTrailLogGroup

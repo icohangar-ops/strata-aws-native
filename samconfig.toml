@@ -1,0 +1,27 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "strata-cfo-production"
+resolve_s3 = true
+s3_prefix = "strata-cfo"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment = \"production\" ChaosSchedule = \"cron(0 */6 * * ? *)\""
+
+[staging.deploy.parameters]
+stack_name = "strata-cfo-staging"
+resolve_s3 = true
+s3_prefix = "strata-cfo-staging"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment = \"staging\" ChaosSchedule = \"cron(0 0 * * ? *)\""
+
+[development.deploy.parameters]
+stack_name = "strata-cfo-development"
+resolve_s3 = true
+s3_prefix = "strata-cfo-dev"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment = \"development\" ChaosSchedule = \"cron(0 8 * * ? *)\""

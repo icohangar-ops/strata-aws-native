@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# SAM build
+.sam/
+.aws-sam/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# CloudFormation
+*.template.packaged.yaml
+packaged.yaml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
