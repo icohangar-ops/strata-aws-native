@@ -250,7 +250,7 @@ class CircuitBreaker:
             ExpressionAttributeNames={"#state": "state"},
             ExpressionAttributeValues={":zero": 0, ":one": 1, ":closed": 0, ":now": now.isoformat()},
         )
-        metrics.add_metric(name="CircuitBreakerClosed", unit=MetricUnit.Count, value=1, extra={"breaker": self.name})
+        metrics.add_metric(name="CircuitBreakerClosed", unit=MetricUnit.Count, value=1)
 
     @tracer.capture_method
     def record_failure(self) -> int:

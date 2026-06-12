@@ -332,7 +332,7 @@ class TestResilienceStackIntegration:
     def test_layers_are_executed_sequentially(self):
         """Each request should pass through all 6 layers in order."""
         # This test verifies the layer ordering in the ResilienceStack class
-        from lambda.resilience_stack.app import ResilienceStack
+        from app import ResilienceStack
         stack = ResilienceStack()
         # The stack should have all components initialized
         assert stack.cache is not None
@@ -354,6 +354,6 @@ class TestResilienceStackIntegration:
 
     def test_fallback_tries_all_models(self):
         """Fallback chain should try all models before giving up."""
-        from lambda.resilience_stack.app import MODEL_CHAIN
+        from app import MODEL_CHAIN
         assert len(MODEL_CHAIN) >= 2
         assert MODEL_CHAIN[0] != MODEL_CHAIN[1]  # Different models

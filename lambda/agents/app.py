@@ -415,9 +415,10 @@ def execute_agent(
     publish_resilience_event(agent_type, tenant_id, result)
 
     # Step 6: Emit CloudWatch metrics
-    metrics.add_metric(name="AgentInvocation", unit=MetricUnit.Count, value=1, extra={"agent_type": agent_type})
-    metrics.add_metric(name="AgentLatency", unit=MetricUnit.Milliseconds, value=result.get("latency_ms", 0), extra={"agent_type": agent_type})
-    metrics.add_metric(name="AgentCost", unit=MetricUnit.None, value=result.get("cost_usd", 0), extra={"agent_type": agent_type})
+    metrics.add_dimension(name="agent_type", value=agent_type)
+    metrics.add_metric(name="AgentInvocation", unit=MetricUnit.Count, value=1)
+    metrics.add_metric(name="AgentLatency", unit=MetricUnit.Milliseconds, value=result.get("latency_ms", 0))
+    metrics.add_metric(name="AgentCost", unit=MetricUnit.NoUnit, value=result.get("cost_usd", 0))
 
     total_latency = (time.monotonic() - start_time) * 1000
 

@@ -459,7 +459,7 @@ def route_request(
 
     # Emit metrics
     metrics.add_metric(name="GatewayTotalLatency", unit=MetricUnit.Milliseconds, value=round(total_latency, 2))
-    metrics.add_metric(name="GatewayTotalCost", unit=MetricUnit.None, value=round(total_cost, 6))
+    metrics.add_metric(name="GatewayTotalCost", unit=MetricUnit.NoUnit, value=round(total_cost, 6))
 
     if final_response is None:
         metrics.add_metric(name="GatewayAllModelsExhausted", unit=MetricUnit.Count, value=1)
