@@ -39,8 +39,8 @@ DEFAULT_TIMEOUT_MS = 30000
 # Approximate cost per 1K tokens (USD) — updated quarterly
 # FTR: Cost tracking for budget governance
 MODEL_COSTS = {
-    "anthic.claude-3-5-sonnet-20241022-v1:0": {"input_per_1k": 0.003, "output_per_1k": 0.015},
-    "anthic.claude-3-sonnet-20240229-v1:0": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+    "anthropic.claude-3-5-sonnet-20241022-v1:0": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+    "anthropic.claude-3-sonnet-20240229-v1:0": {"input_per_1k": 0.003, "output_per_1k": 0.015},
     "amazon.titan-text-premier-v1:0": {"input_per_1k": 0.0008, "output_per_1k": 0.0016},
     "amazon.titan-text-express-v1:0": {"input_per_1k": 0.0004, "output_per_1k": 0.0008},
     "meta.llama3-70b-instruct-v1:0": {"input_per_1k": 0.00265, "output_per_1k": 0.0035},

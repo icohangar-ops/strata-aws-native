@@ -197,7 +197,7 @@ class TestCostEstimation:
 
     def test_claude_cost(self):
         client = BedrockClient(region_name="us-east-1")
-        cost = client.estimate_cost("anthic.claude-3-5-sonnet-20241022-v1:0", 1000, 500)
+        cost = client.estimate_cost("anthropic.claude-3-5-sonnet-20241022-v1:0", 1000, 500)
         # input: 1K * $0.003 = $0.003, output: 0.5K * $0.015 = $0.0075
         assert abs(cost - 0.0105) < 0.001
 

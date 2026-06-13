@@ -34,6 +34,7 @@ import boto3
 from aws_lambda_powertools import Logger, Metrics, Tracer
 from aws_lambda_powertools.metrics import MetricUnit
 from aws_lambda_powertools.utilities.typing import LambdaContext
+from cubiczan_resilience import resilient
 
 # FTR Compliance: Environment variables from SAM template
 METRICS_TABLE = os.environ.get("METRICS_TABLE", "")
@@ -42,7 +43,7 @@ BEDROCK_SECRET_ARN = os.environ.get("BEDROCK_SECRET_ARN", "")
 RESILIENCE_EVENTS_QUEUE = os.environ.get("RESILIENCE_EVENTS_QUEUE", "")
 KMS_KEY_ID = os.environ.get("KMS_KEY_ID", "")
 
-PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthic.claude-3-5-sonnet-20241022-v1:0")
+PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v1:0")
 
 logger = Logger(service="strata-agents")
 metrics = Metrics(namespace="StrataCFO")
@@ -212,6 +213,23 @@ def validate_tenant_access(tenant_id: str, agent_type: str) -> bool:
     return True
 
 
+@resilient(timeout=30.0, max_attempts=3)
+def _invoke_bedrock(body: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Raw Bedrock invocation, hardened with timeout + retry/backoff + circuit breaker.
+
+    FTR Compliance: The external LLM call is the failure-prone boundary, so it is
+    wrapped with the shared resilience decorator. Raises on failure so retries and
+    the circuit breaker engage; callers handle the exhausted case.
+    """
+    bedrock = get_bedrock_runtime()
+    response = bedrock.invoke_model(
+        modelId=PRIMARY_MODEL_ID,
+        body=json.dumps(body),
+    )
+    return json.loads(response["Body"].read().decode("utf-8"))
+
+
 @tracer.capture_method
 def invoke_resilience_stack(
     prompt: str,
@@ -229,7 +247,6 @@ def invoke_resilience_stack(
 
     FTR Compliance: All requests go through the resilience stack — no direct LLM access.
     """
-    bedrock = get_bedrock_runtime()
     start_time = time.monotonic()
 
     # Build Bedrock request (Claude 3.5 Sonnet format)
@@ -245,11 +262,7 @@ def invoke_resilience_stack(
     request_id = str(uuid.uuid4())
 
     try:
-        response = bedrock.invoke_model(
-            modelId=PRIMARY_MODEL_ID,
-            body=json.dumps(body),
-        )
-        response_body = json.loads(response["Body"].read().decode("utf-8"))
+        response_body = _invoke_bedrock(body)
 
         response_text = response_body.get("content", [{}])[0].get("text", "")
         input_tokens = response_body.get("usage", {}).get("input_tokens", 0)

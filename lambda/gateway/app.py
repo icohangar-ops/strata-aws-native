@@ -40,7 +40,7 @@ CACHE_BUCKET = os.environ.get("CACHE_BUCKET", "")
 BEDROCK_SECRET_ARN = os.environ.get("BEDROCK_SECRET_ARN", "")
 KMS_KEY_ID = os.environ.get("KMS_KEY_ID", "")
 
-PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthic.claude-3-5-sonnet-20241022-v1:0")
+PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v1:0")
 FALLBACK_MODEL_ID = os.environ.get("FALLBACK_MODEL_ID", "amazon.titan-text-premier-v1:0")
 TERTIARY_MODEL_ID = os.environ.get("TERTIARY_MODEL_ID", "meta.llama3-70b-instruct-v1:0")
 
@@ -50,7 +50,7 @@ CIRCUIT_BREAKER_RESET_TIMEOUT = int(os.environ.get("CIRCUIT_BREAKER_RESET_TIMEOU
 # Cost estimation per 1K tokens (USD) — approximate for budget tracking
 # FTR Note: Costs updated quarterly based on AWS pricing
 MODEL_COSTS = {
-    "anthic.claude-3-5-sonnet-20241022-v1:0": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+    "anthropic.claude-3-5-sonnet-20241022-v1:0": {"input_per_1k": 0.003, "output_per_1k": 0.015},
     "amazon.titan-text-premier-v1:0": {"input_per_1k": 0.0008, "output_per_1k": 0.0016},
     "meta.llama3-70b-instruct-v1:0": {"input_per_1k": 0.00265, "output_per_1k": 0.0035},
 }
@@ -215,11 +215,6 @@ def update_circuit_breaker(model_id: str, success: bool) -> None:
                     "#state = :open"
                 ),
                 ExpressionAttributeNames={"#state": "state", "#updated_at": "updated_at"},
-                ExpressionAttributeValues={
-                    ":one": 1,
-                    ":now": now.isoformat(),
-                    ":open": CircuitState.OPEN.value,
-                },
                 ConditionExpression="failure_count < :threshold",
                 ExpressionAttributeValues={
                     ":one": 1,

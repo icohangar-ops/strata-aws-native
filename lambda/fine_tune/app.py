@@ -34,7 +34,7 @@ MODEL_ARTIFACTS_BUCKET = os.environ.get("MODEL_ARTIFACTS_BUCKET", "")
 FINE_TUNING_TABLE = os.environ.get("FINE_TUNING_TABLE", "")
 BEDROCK_SECRET_ARN = os.environ.get("BEDROCK_SECRET_ARN", "")
 KMS_KEY_ID = os.environ.get("KMS_KEY_ID", "")
-PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthic.claude-3-5-sonnet-20241022-v1:0")
+PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v1:0")
 
 logger = Logger(service="strata-finetune")
 metrics = Metrics(namespace="StrataCFO")

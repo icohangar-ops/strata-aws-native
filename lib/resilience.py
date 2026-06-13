@@ -214,7 +214,6 @@ class CircuitBreaker:
                     "last_failure_at = :now, #updated_at = :now"
                 ),
                 ExpressionAttributeNames={"#updated_at": "updated_at"},
-                ExpressionAttributeValues={":one": 1, ":now": now.isoformat()},
                 ConditionExpression="failure_count < :threshold",
                 ExpressionAttributeValues={":one": 1, ":now": now.isoformat(), ":threshold": self.failure_threshold},
                 ReturnValues="ALL_NEW",

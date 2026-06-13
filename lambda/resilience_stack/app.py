@@ -32,6 +32,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import boto3
 from aws_lambda_powertools import Logger, Metrics, Tracer
+from aws_lambda_powertools.logging import correlation_paths
 from aws_lambda_powertools.metrics import MetricUnit
 from aws_lambda_powertools.utilities.typing import LambdaContext
 
@@ -42,7 +43,7 @@ CACHE_BUCKET = os.environ.get("CACHE_BUCKET", "")
 BEDROCK_SECRET_ARN = os.environ.get("BEDROCK_SECRET_ARN", "")
 KMS_KEY_ID = os.environ.get("KMS_KEY_ID", "")
 
-PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthic.claude-3-5-sonnet-20241022-v1:0")
+PRIMARY_MODEL_ID = os.environ.get("PRIMARY_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v1:0")
 FALLBACK_MODEL_ID = os.environ.get("FALLBACK_MODEL_ID", "amazon.titan-text-premier-v1:0")
 TERTIARY_MODEL_ID = os.environ.get("TERTIARY_MODEL_ID", "meta.llama3-70b-instruct-v1:0")
 
@@ -262,7 +263,6 @@ class CircuitBreaker:
             response = table.update_item(
                 Key={"breaker_id": self.name},
                 UpdateExpression="SET failure_count = failure_count + :one, last_failure_at = :now",
-                ExpressionAttributeValues={":one": 1, ":now": now.isoformat()},
                 ConditionExpression="failure_count < :threshold",
                 ExpressionAttributeValues={":one": 1, ":now": now.isoformat(), ":threshold": CIRCUIT_BREAKER_THRESHOLD},
                 ReturnValues="ALL_NEW",
